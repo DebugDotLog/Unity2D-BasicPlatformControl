@@ -65,17 +65,17 @@ public class BallVerticalState : MonoBehaviour
 
         if (other != null)
         {
-                float dotProduct = Vector2.Dot(other.contacts[0].normal, Vector2.up);
-                if (!isGrounded() && !isJumping() && dotProduct > .8)
-                {
-                    //Debug.Log("collision");
-                    transitionToGrounded();
-                }
-                else if (isGrounded() && dotProduct < .8)
-                {
-                    transitionToFalling();
-                }
-
+            float dotProduct = Vector2.Dot(other.contacts[0].normal, Vector2.up);
+            if (!isGrounded() && !isJumping() && dotProduct > .8)
+            {
+                //Debug.Log("collision");
+                transitionToGrounded();
+            }
+            //The cause of the collision bug
+            //else if (isGrounded() && dotProduct < .8)
+            //{
+            //    transitionToFalling();
+            //}
         }
     }
 

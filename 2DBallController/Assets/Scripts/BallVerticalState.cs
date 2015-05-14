@@ -3,59 +3,65 @@ using System.Collections;
 
 public class BallVerticalState : MonoBehaviour
 {
-    public enum VerticalState { grounded, jumping, falling}
+        // Setup and Create the state machine with 3 states. currentState will provide a live state monitor in Unity's Inspector.
+    public enum VerticalState { grounded, jumping, falling }
     public VerticalState currentState = VerticalState.falling;
 
+        // PhysicsMaterial2Ds used to alter collider's friction while jumping.
     public PhysicsMaterial2D nonfriction;
     public PhysicsMaterial2D friction;
 
-    public float maxAirtime = .2f;
+        // Tweak these to alter the feel/height/response of the jump.
+    public float maxAirtime = .8f;
     public float baseJumpForce = 2f;
 
     private Rigidbody2D _rb = null;
     private Vector2 _velocity = Vector2.zero;
     private Collider2D _circleCollider = null;
-    private float _jumpForce = 5f;
+    private float _jumpForce = 0f;
     private float _airtime = 0f;
     private bool _spaceBar = false;
 
     #region MonobehaviorMessages
+
     void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
-        _circleCollider = GetComponent<CircleCollider2D>();
+        _circleCollider = GetComponent<Collider2D>();
     }
 
-    void Update ()
+    void Update()
     {
         if (Input.GetButtonDown("Jump"))
         {
             _spaceBar = true;
         }
-        if(Input.GetButtonUp("Jump"))
+        if (Input.GetButtonUp("Jump"))
         {
             _spaceBar = false;
         }
     }
 
-    void FixedUpdate ()
+    void FixedUpdate()
     {
         _velocity = _rb.velocity;
-        switch(currentState)
+
+            // Switch statement controls flow depending on the current state.
+        switch (currentState)
         {
             case VerticalState.grounded:
                 if (_spaceBar)
                 {
-                    transitionToJumping();
+                    TransitionToJumping();
                 }
                 break;
             case VerticalState.jumping:
-                if (_spaceBar && _jumpForce > 0)
+                if (_spaceBar && _jumpForce > .0001f)
                 {
                     ApplyJumpForce();
                 }
                 else
-                    transitionToFalling();
+                    TransitionToFalling();
                 break;
         }
     }
@@ -65,30 +71,29 @@ public class BallVerticalState : MonoBehaviour
 
         if (other != null)
         {
-            float dotProduct = Vector2.Dot(other.contacts[0].normal, Vector2.up);
-            if (!isGrounded() && !isJumping() && dotProduct > .8)
+            float dotProduct = Vector2.Dot(other.contacts[0].normal, Vector2.up);   // The dotProduct of a flat horizontal surface will be ~1
+            if (IsFalling() && dotProduct > .8)                                     // We want to be falling before we check to see if we're grounded.
             {
-                //Debug.Log("collision");
-                transitionToGrounded();
+                //Debug.Log("collIsion");
+                TransitionToGrounded();
             }
-            //The cause of the collision bug
-            //else if (isGrounded() && dotProduct < .8)
-            //{
-            //    transitionToFalling();
-            //}
         }
     }
 
     void OnCollisionExit2D(Collision2D other)
     {
-        if (isGrounded())
+        if (IsGrounded())                                               // Make sure we go into the falling state when we fall off without jumping first.
         {
-            transitionToFalling();
+            TransitionToFalling();
         }
     }
     #endregion
 
     #region OtherFunctions
+
+    /// <summary>
+    /// Switches _collider's physics material to _material
+    /// </summary>
     public void SwitchPhysMat2D(Collider2D _collider, PhysicsMaterial2D _material)
     {
         //Debug.Log("Switched Physical Material");
@@ -97,22 +102,32 @@ public class BallVerticalState : MonoBehaviour
         _collider.enabled = true;
     }
 
-    void ApplyJumpForce ()
+    /// <summary>
+    /// Makes local _rb jump by _jumpForce. Multiplies _jumpForce by _airtime. Decrements Airtime.
+    /// </summary>
+    void ApplyJumpForce()
     {
         //Debug.Log("Applying Jump Force");
-        _rb.velocity += new Vector2(0f,_jumpForce);
+        _rb.velocity += new Vector2(0f, _jumpForce);
         _jumpForce *= _airtime;
         _airtime -= .1f * Time.fixedDeltaTime;
     }
     #endregion
 
     #region StateTransitions
-    void transitionToGrounded()
+
+    /// <summary>
+    /// Changes currentState to grounded.
+    /// </summary>
+    void TransitionToGrounded()
     {
         currentState = VerticalState.grounded;
     }
 
-    void transitionToJumping()
+    /// <summary>
+    /// Makes preparations for the beginning of a jump, then sets currentState to jumping.
+    /// </summary>
+    void TransitionToJumping()
     {
         //Debug.Log("Engaging Jump");
         _velocity.y = 0f;
@@ -123,7 +138,10 @@ public class BallVerticalState : MonoBehaviour
         currentState = VerticalState.jumping;
     }
 
-    void transitionToFalling()
+    /// <summary>
+    /// Makes sure the collider's material has friction, then sets currentState to falling.
+    /// </summary>
+    void TransitionToFalling()
     {
         if (_circleCollider.sharedMaterial == nonfriction)
         {
@@ -135,17 +153,27 @@ public class BallVerticalState : MonoBehaviour
     #endregion
 
     #region StateChecks
-    bool isGrounded()
+
+    /// <summary>
+    /// Returns true of currentState is grounded.
+    /// </summary>
+    bool IsGrounded()
     {
         return currentState == VerticalState.grounded;
     }
 
-    bool isJumping()
+    /// <summary>
+    /// Returns true if currentState is jumping.
+    /// </summary>
+    bool IsJumping()
     {
         return currentState == VerticalState.jumping;
     }
 
-    bool isFalling()
+    /// <summary>
+    /// Returns true if currentState is falling.
+    /// </summary>
+    bool IsFalling()
     {
         return currentState == VerticalState.falling;
     }
